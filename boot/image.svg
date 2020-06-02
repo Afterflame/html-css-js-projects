@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg  PUBLIC '-//W3C//DTD SVG 1.1//EN'  'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'>
+<svg width="600" height="600" version="1.1" viewBox="0 0 640 640" 
+    xmlns="http://www.w3.org/2000/svg" 
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+    <defs>
+        <path id="e" d="m406.96 51.49h35.64v80.19h-35.64v-80.19z"/>
+        <path id="i" d="m606.93 520.79c0 33.88-121.78 61.39-271.78 61.39s-271.79-27.51-271.79-61.39 121.79-61.38 271.79-61.38 271.78 27.5 271.78 61.38z"/>
+        <path id="b" d="m170.63 162.33h329.03v355.14h-329.03v-355.14z"/>
+        <path id="d" d="m352.12 296.5h109.68v124.35h-109.68v-124.35z"/>
+        <path id="a" d="m195.75 238.06h120.13v279.41h-120.13v-279.41z"/>
+        <path id="c" d="m170.63 162.33h329.03l-164.51-137.1-164.52 137.1z"/>
+        <path id="j" d="m297.23 391.09-13.86-13.33 13.86-13.4"/>
+        <path id="g" d="m406.96 420.85v-124.35"/>
+        <path id="h" d="m406.96 358.67h-54.84"/>
+        <path id="k" d="m480.4 25.23c0 9.84-15.79 17.82-35.24 17.82-19.44 0-35.23-7.98-35.23-17.82s15.79-17.82 35.23-17.82c19.45 0 35.24 7.98 35.24 17.82z"/>
+        <path id="f" d="m497.81 16.83c0 9.29-11.8 16.83-26.32 16.83-14.53 0-26.33-7.54-26.33-16.83s11.8-16.83 26.33-16.83c14.52 0 26.32 7.54 26.32 16.83z"/>
+    </defs>
+    <use fill="#1b1f2d" xlink:href="#e"/>
+    <use fill-opacity="0" stroke="#000000" stroke-width="2" xlink:href="#e"/>
+    <use fill="#0e6821" xlink:href="#i"/>
+    <use fill="#683609" xlink:href="#b"/>
+    <use fill-opacity="0" stroke="#000000" stroke-width="2" xlink:href="#b"/>
+    <use fill="#7dbba7" xlink:href="#d"/>
+    <use fill-opacity="0" stroke="#000000" stroke-width="4" xlink:href="#d"/>
+    <use fill="#80561b" xlink:href="#a"/>
+    <use fill-opacity="0" stroke="#000000" stroke-width="2" xlink:href="#a"/>
+    <use fill="#212638" xlink:href="#c"/>
+    <use fill-opacity="0" stroke="#000000" stroke-width="4" xlink:href="#c"/>
+    <use fill-opacity="0" stroke="#2f1904" stroke-width="7" xlink:href="#j"/>
+    <use fill-opacity="0" stroke="#000000" stroke-width="3" xlink:href="#g"/>
+    <use fill-opacity="0" stroke="#000000" stroke-width="3" xlink:href="#h"/>
+    <use fill="#adadad" xlink:href="#k"/>
+    <use fill="#838383" xlink:href="#f"/>
+</svg>
