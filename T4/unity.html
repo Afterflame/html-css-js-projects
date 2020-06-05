@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>
+        T4
+    </title>
+    <script src="js/monojs.js"></script>
+    <script src="http://fred-wang.github.io/mathjax.js/mpadded-min.js"></script>
+</head>
+<style></style>
+<body style="text-align: center;">
+    <p>Площадь круга. Введите радиус:</p>
+    <form id="1">
+        <p><input type="text" id="t1">
+        </p>
+        <p><input type="button" value="calc" onclick="calc1()"></p>
+        <p id="result1"></p>
+    </form>
+    <p>Сумма элементов поледовательности
+        <math>
+            <mi>x</mi>
+            <mo> , </mo>
+            <mfrac>
+                <msup>
+                    <mi>x</mi>
+                    <mn>5</mn>
+                </msup>
+                <mn>4</mn>
+            </mfrac>
+            <mo> , </mo>
+            <mfrac>
+                <msup>
+                    <mi>x</mi>
+                    <mn>9</mn>
+                </msup>
+                <mn>8</mn>
+            </mfrac>
+            <mo>...</mo>
+        </math>
+        с 3 по 15. Введите x:
+    </p>
+    <form id="2">
+        <p><input type="text" id="t2"></p>
+        <p><input type="button" value="calc" onclick="calc2()"></p>
+        <p id="result2"></p>
+    </form>
+    <form>
+        <p>Матрица М состоит из 4 строк, 3 столбцов.
+            Вычесть из всех строк, начиная со второй, первую строку.</p>
+        <p>"randomize" так же тест для подзадания 4.4а</p>
+        <p><input type="text" id="11"> <input type="text" id="12"> <input type="text" id="13"></p>
+        <p><input type="text" id="21"> <input type="text" id="22"> <input type="text" id="23"></p>
+        <p><input type="text" id="31"> <input type="text" id="32"> <input type="text" id="33"></p>
+        <p><input type="text" id="41"> <input type="text" id="42"> <input type="text" id="43"></p>
+        <p><input type="button" value="calc" onclick="calc3()"><input type="button" value="randomize"
+                onclick="randomizeMat()">min<input type="text" id="ranMin">max<input type="text" id="ranMax"></p>
+        <p id="result3"></p>
+    </form>
+    <form>
+        <p>Введите массив чисел через пробел:</p>
+        <p><input type="text" id="inputArr"size="48"></p>
+        <p><input type="button" value="randomize(n=12)" onclick="randomizeArr()">
+            <input type="button" value="Sort" onclick="SortArr(GetArr('inputArr'))">
+            <p id="result4"></p>
+            <p><img src="76.jpg"></p>
+        <p><input type="button" value="randomize. n=(empty for 5)" onclick="randomizeArrNN()"> <input type="text" id="sizeS"></p>
+        <p><input type="text" id="inputArrNN" size="48"></p>
+        <p><input type="button" value="Create Sheet" onclick="CreateSheet()"></p>
+        <p><table id ="tbl1" border=1 align="center"></table></p>
+    </form>
+</body>
+
+</html>
