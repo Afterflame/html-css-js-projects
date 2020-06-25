@@ -7,18 +7,6 @@ function countChildren(node) {
     return (counter + 1);
 }
 
-function countLIChildren(node) {
-    var counter = 0;
-    if (node.hasChildNodes())
-        for (var son of node.childNodes) {
-            if (son.nodeName == "LI" || son.nodeName == "UL")
-                counter += countLIChildren(son);
-        }
-    if (node.nodeName == "LI")
-        return (counter + 1);
-    else return counter;
-}
-
 function showinfo(node, depth) {
     var s = '';
     for (var i = 0; i < depth; i++)
@@ -64,14 +52,6 @@ function showinfo(node, depth) {
             break;
         default:
             s += 'ERROR'
-    }
-    if (node.nodeName == 'LI') {
-        console.log(node.childNodes)
-        if (countLIChildren(node) - 1 !== 0) {
-            node.childNodes[1].style = "display: none";
-        } else
-            state.set(node.id, 0);
-        node.childNodes[1].innerHTML = (countLIChildren(node) - 1);
     }
     s += ', Node Tag: ' + node.nodeName;
     if (typeof node.id !== 'undefined' && node.id !== null && node.id !== '')

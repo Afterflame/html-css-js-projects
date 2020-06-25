@@ -1,0 +1,13 @@
+   BODY {
+       font: 14pt Arial, Helvetica, sans-serif;
+       background: #f0f0f0;
+       margin: 40px 40px 40px 40px;
+       /* Цвет фона веб-страницы */
+   }
+   
+   SPAN {
+       color: #ccc;
+       font-size: 0.8em;
+       padding: 0px;
+       margin: 0px 0px 0px 5px;
+   }

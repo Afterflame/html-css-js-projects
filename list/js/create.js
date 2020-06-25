@@ -1,11 +1,15 @@
-var state=[];
+var state = [];
+
 function God(elem) {
     var li = document.createElement('li');
     var ul = document.createElement('ul');
+    var span = document.createElement("span");
     li.appendChild(document.createTextNode(elem.text));
-    li.id=elem.id;
+    li.appendChild(span);
+    li.id = elem.id;
     state.push([li.id, 1])
-    ul.id=elem.id+"_ul";
+    ul.id = elem.id + "_ul";
+
     if (elem.childs.length !== 0) {
         state.push([ul.id, 1]);
         for (var point of elem.childs) {
@@ -19,8 +23,8 @@ function God(elem) {
     return ul;
 }
 var ul = document.createElement('ul');
-for(var i=0; i<all.length; i++){
+for (var i = 0; i < all.length; i++) {
     ul.appendChild(God(all[i]));
 }
-document.getElementById("main").prepend(ul);    
-state=new Map(state);
+document.getElementById("main").prepend(ul);
+state = new Map(state);
