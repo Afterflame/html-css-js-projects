@@ -1,0 +1,485 @@
+<html>
+
+<head>
+    <style>
+        form {
+            font-family: monospace;
+        }
+        
+        .dir {
+            height: 40px;
+            width: 40px;
+        }
+        
+        .off {
+            height: 49px;
+            width: 133px;
+        }
+        
+        .regul {
+            height: 26px;
+            width: 46px;
+        }
+        
+        .spec {
+            height: 40px;
+            width: 100px;
+        }
+        
+        .inline {
+            display: inline-block;
+            margin: 10px;
+        }
+    </style>
+
+    <title>Canvas</title>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mootools/1.6.0/mootools-core.js"></script>
+    <script type="text/javascript">
+        var canvas, ctx, Figures, idTimer = null,
+            curMoveType = 0,
+            avlifespan = 200,
+            dospawn = 1;
+        moveX = 0,
+            moveY = 0,
+            chaosState = 0,
+            timespeed = 1,
+            velocities = [
+                [0, 0],
+                [0, -1],
+                [-1, 0],
+                [1, 0],
+                [0, 1]
+            ];
+
+        function getRandSign() {
+            var a = Math.random() - 0.5;
+            a = a / Math.abs(a);
+            return a;
+        }
+        class pt {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+        }
+
+        class line {
+            constructor(dot1, dot2) {
+                if (dot1.x < dot2.x) {
+                    this.pt1 = dot1;
+                    this.pt2 = dot2;
+                } else {
+                    this.pt1 = dot2;
+                    this.pt2 = dot1;
+                }
+            }
+        }
+        TFigure = new Class({
+            initialize: function(pX, pY, mT) {
+                this.type = Math.floor(Math.random() * 3);
+                this.movetype = mT;
+                this.posX = pX; //позиция шарика по X
+                this.posY = pY; //позиция шарика по Y
+                if (this.movetype == 5) {
+                    this.Vx = getRandSign() * Math.random();
+                    this.Vy = getRandSign() * Math.sqrt((1 - Math.pow(this.Vx, 2)));
+                } else {
+                    this.Vx = velocities[this.movetype][0];
+                    this.Vy = velocities[this.movetype][1];
+                }
+                this.rFigure = 5 + Math.random() * 25;
+                this.Vcoef = 0.5 / this.rFigure + 0.01;
+                this.lifespan = avlifespan / 2 + avlifespan / 2 * Math.random();
+                //цвет шарика, формируется случайным оьразом
+                this.colFigure = 'rgb(' + Math.floor(Math.random() * 256) + ',' +
+                    Math.floor(Math.random() * 256) + ',' + Math.floor(Math.random() * 256) + ')';
+                // радиус шарика, случайное число от 5 до 30
+            },
+            Vcoef: 1,
+            curLifespan: 1,
+            lifespan: 0,
+            movetype: 0,
+            Vx: 0,
+            Vy: 0,
+            posX: 0,
+            posY: 0,
+            colFigure: "rgb(0,0,0)",
+            rFigure: 0,
+            size: function() {
+                with(this) {
+                    return Math.sqrt(Math.sqrt(Math.sqrt(curLifespan))) * rFigure
+                }
+            },
+            colorFigure: function(ctx) {
+                // формируем градиентную заливку для шарика
+                with(this) {
+                    gradient = ctx.createRadialGradient(posX + size() / 4,
+                        posY - size() / 6, size() / 8, posX, posY, size());
+                    gradient.addColorStop(0, '#fff');
+                    gradient.addColorStop(0.85, colFigure);
+                    return gradient;
+                }
+            },
+            draw: function(ctx) {
+                // рисуем шарик на canvas
+                with(this) {
+                    ctx.fillStyle = colorFigure(ctx);
+                    if (type == 0) {
+                        ctx.beginPath();
+                        ctx.arc(posX, posY, size(), 0, 2 * Math.PI, false);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    if (type == 1) {
+                        ctx.fillRect(posX - size(), posY - size(), size() * 2, size() * 2);
+                    }
+                    if (type == 2) {
+
+                        ctx.beginPath();
+                        ctx.moveTo(posX + size() * Math.cos(curLifespan / 16), posY + size() * Math.sin(curLifespan / 16))
+                        for (var i = 4 * Math.PI / 5 + curLifespan / 16; i <= 20 * Math.PI / 5 + curLifespan / 16; i += 4 * Math.PI / 5) {
+                            var x = posX + size() * Math.cos(i);
+                            var y = posY + size() * Math.sin(i);
+                            ctx.lineTo(x, y)
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+            }
+        });
+
+        function getLines(a) {
+            var ar = [];
+            if (a.type == 2) {
+                var dot = new pt(a.posX + a.size() * Math.cos(a.curLifespan / 16), a.posY + a.size() * Math.sin(a.curLifespan / 16));
+                for (var i = 4 * Math.PI / 5 + a.curLifespan / 16; i <= 20 * Math.PI / 5 + a.curLifespan / 16; i += 4 * Math.PI / 5) {
+                    var x = a.posX + a.size() * Math.cos(i),
+                        y = a.posY + a.size() * Math.sin(i)
+                    ar.push(new line(dot, new pt(x, y)));
+                    dot = new pt(x, y);
+                }
+            }
+
+            if (a.type == 1) {
+                ar.push(new line(new pt(a.posX - a.size(), a.posY - a.size()), new pt(a.posX - a.size(), a.posY + a.size())));
+                ar.push(new line(new pt(a.posX - a.size(), a.posY - a.size()), new pt(a.posX + a.size(), a.posY - a.size())));
+                ar.push(new line(new pt(a.posX + a.size(), a.posY - a.size()), new pt(a.posX + a.size(), a.posY + a.size())));
+                ar.push(new line(new pt(a.posX - a.size(), a.posY + a.size()), new pt(a.posX + a.size(), a.posY + a.size())));
+            }
+
+            if (a.type == 3) {
+                ar = [new line(new pt(0, 0), new pt(0, canvas.height)),
+                    new line(new pt(0, 0), new pt(canvas.width, 0)),
+                    new line(new pt(0, canvas.height), new pt(canvas.width, canvas.height)),
+                    new line(new pt(canvas.width, 0), new pt(canvas.width, canvas.height))
+                ]
+            }
+            return ar;
+        }
+
+        function vecMult(a1, a2, a3, a4) {
+            return a1 * a2 - a3 * a4;
+        }
+
+
+        function intersectLines(line1, line2) {
+            var
+                v1 = vecMult(line2.pt2.x - line2.pt1.x, line1.pt1.y - line2.pt1.y, line1.pt1.x - line2.pt1.x, line2.pt2.y - line2.pt1.y),
+                v2 = vecMult(line2.pt2.x - line2.pt1.x, line1.pt2.y - line2.pt1.y, line1.pt2.x - line2.pt1.x, line2.pt2.y - line2.pt1.y),
+                v3 = vecMult(line1.pt2.x - line1.pt1.x, line2.pt1.y - line1.pt1.y, line2.pt1.x - line1.pt1.x, line1.pt2.y - line1.pt1.y),
+                v4 = vecMult(line1.pt2.x - line1.pt1.x, line2.pt2.y - line1.pt1.y, line2.pt2.x - line1.pt1.x, line1.pt2.y - line1.pt1.y);
+            if ((v1 * v2 < 0) && (v3 * v4 < 0))
+                return true;
+            else return false;
+        }
+
+        function LinterC(x1, y1, x2, y2, R) {
+            var dx = x2 - x1,
+                dy = y2 - y1,
+                a = dx * dx + dy * dy,
+                b = 2. * (x1 * dx + y1 * dy),
+                c = x1 * x1 + y1 * y1 - R * R;
+            if (-b < 0)
+                return (c < 0);
+            if (-b < (2. * a))
+                return ((4. * a * c - b * b) < 0);
+
+            return (a + b + c < 0);
+        }
+
+        function LineCirInter(lineObj, cirObj) {
+            var lines = getLines(lineObj);
+            for (var line of lines) {
+                line.pt1.x -= cirObj.posX;
+                line.pt1.y -= cirObj.posY;
+                line.pt2.x -= cirObj.posX;
+                line.pt2.y -= cirObj.posY;
+                var d1 = Math.sqrt(Math.pow(line.pt1.x, 2) + Math.pow(line.pt1.y, 2)),
+                    d2 = Math.sqrt(Math.pow(line.pt2.x, 2) + Math.pow(line.pt2.y, 2));
+                if (LinterC(line.pt1.x, line.pt1.y, line.pt2.x, line.pt2.y, cirObj.size()) || d1 <= cirObj.size() || d2 <= cirObj.size())
+                    return true;
+            }
+            return false;
+        }
+
+        function linelineInter(obj1, obj2) {
+            var lines1 = getLines(obj1),
+                lines2 = getLines(obj2);
+            for (var line1 of lines1) {
+                for (var line2 of lines2) {
+                    ctx.closePath();
+                    if (intersectLines(line1, line2)) return true;
+                }
+            }
+            return false;
+        }
+
+        function cirCirInter(obj1, obj2) {
+            var d = Math.sqrt(Math.pow(obj2.posX - obj1.posX, 2) + Math.pow(obj2.posY - obj1.posY, 2));
+            if (d <= obj1.size() + obj2.size()) return true;
+            else return false;
+        }
+
+        function objsIntersec(a, b) {
+            a.rFigure /= 3;
+            b.rFigure /= 3;
+            if (cirCirInter(a, b) == true) {
+                a.rFigure *= 3;
+                b.rFigure *= 3;
+                return true;
+            }
+            a.rFigure *= 3;
+            b.rFigure *= 3;
+            if (a.type == 0 || b.type == 0) {
+                if (a.type == 0 && b.type == 0) {
+                    return cirCirInter(a, b);
+                } else if (a.type == 0) {
+                    return (LineCirInter(b, a));
+                } else {
+                    return LineCirInter(a, b);
+                }
+            } else {
+                return linelineInter(a, b);
+            }
+
+        }
+
+        function KeepItUP() {
+            if (figures.length <= 8 && Math.random() > 1.5 - dospawn) {
+                if (Math.abs(moveX) > Math.abs(moveY))
+                    var topS = Math.abs(moveX);
+                else
+                    var topS = Math.abs(moveY);
+                var x = (topS - moveX) / (2 * topS);
+                var y = (topS - moveY) / (2 * topS);
+                x = (Math.max(Math.min((x + Math.random() - 0.5), 1), 0)) * canvas.width;
+                y = (Math.max(Math.min((y + Math.random() - 0.5), 1), 0)) * canvas.height;
+                if (chaosState == 1) {
+                    x = Math.random() * canvas.width;
+                    y = Math.random() * canvas.height;
+                }
+                var item = new TFigure(x, y, 0);
+                item.draw(ctx);
+                figures.push(item);
+            }
+        }
+
+        function drawBack(ctx, col1, col2, w, h) {
+            // закрашиваем канвас градиентным фоном
+            ctx.save();
+            var g = ctx.createLinearGradient(0, 0, 0, h);
+            g.addColorStop(1, col1);
+            g.addColorStop(0, col2);
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, w, h);
+            ctx.restore();
+        }
+        // инициализация работы
+        function init() {
+            canvas = document.getElementById('canvas');
+            if (canvas.getContext) {
+                ctx = canvas.getContext('2d');
+                //рисуем фон
+                drawBack(ctx, '#202020', '#aaa', canvas.width, canvas.height);
+                //создаем 10 шариков, заноси их в массив и выводим на canvas
+                figures = [];
+                for (var i = 1; i <= 10; i++) {
+                    var item = new TFigure(10 + Math.random() * (canvas.width - 30),
+                        10 + Math.random() * (canvas.height - 30), 0);
+                    item.draw(ctx);
+                    figures.push(item);
+                }
+            }
+        }
+        // создаем новый шарик по щелчку мыши, добавляем его в массив шариков и рисуем его
+        function goInput(event) {
+            var x = event.clientX;
+            var y = event.clientY;
+            var item = new TFigure(x, y, curMoveType);
+            item.draw(ctx);
+            figures.push(item);
+        }
+
+        function SetMoveType(a) {
+            curMoveType = a;
+        }
+
+        function getSign(a) {
+            a = a / Math.abs(a);
+            return a;
+        }
+
+        function DeleteFigure(i) {
+            figures.splice(i, 1);
+        }
+
+        function moveFigure() {
+            KeepItUP();
+            drawBack(ctx, '#202020', '#aaa', canvas.width, canvas.height);
+            var canvAsFig = new TFigure(canvas.width / 2, canvas.height / 2, 0);
+            canvAsFig.type = 3;
+            for (var i = 0; i < figures.length; i) {
+                if (chaosState == 1) {
+                    var LX = ((Math.random() + 0.5) * 4) * figures[i].Vcoef * timespeed * getRandSign();
+                    LY = ((Math.random() + 0.5) * 4) * figures[i].Vcoef * timespeed * getRandSign();;
+                } else
+                if (figures[i].movetype !== 0) {
+                    var LX = (Math.random() * 2 - Math.random() * 2 + figures[i].Vx * 4) * figures[i].Vcoef * timespeed,
+                        LY = (Math.random() * 2 - Math.random() * 2 + figures[i].Vy * 4) * figures[i].Vcoef * timespeed;
+                } else {
+                    var LX = (1000 % ((Math.random() + 2) * moveX + 1)) * (moveX / (Math.abs(moveX) + 0.5)) * figures[i].Vcoef * timespeed,
+                        LY = (1000 % ((Math.random() + 2) * moveY + 1)) * (moveY / (Math.abs(moveY) + 0.5)) * figures[i].Vcoef * timespeed;
+                }
+                figures[i].posX = figures[i].posX + LX + LX * Math.pow((figures[i].curLifespan / 70), 2);
+                figures[i].posY = figures[i].posY + LY + LY * Math.pow((figures[i].curLifespan / 70), 2);
+                figures[i].curLifespan += Math.sqrt(Math.pow(LX, 2) + Math.pow(LY, 2));
+                for (var j = 0; j < figures.length; j++) {
+                    if (i == j) {
+                        if (objsIntersec(figures[i], canvAsFig)) {
+                            figures[i].curLifespan = figures[i].lifespan + 1;
+                        }
+                    } else if (objsIntersec(figures[i], figures[j])) {
+                        figures[i].curLifespan = figures[i].lifespan + 1;
+                        figures[j].curLifespan = figures[j].lifespan + 1;
+                    }
+                }
+                if (figures[i].posX > canvas.width || figures[i].posY > canvas.height || figures[i].posY < 0 || figures[i].posX < 0 || figures[i].curLifespan >= figures[i].lifespan)
+                    DeleteFigure(i);
+                else {
+                    figures[i].draw(ctx);
+                    i++;
+                }
+            }
+        }
+
+        function move(x, y) {
+            if (Math.abs(moveX) + Math.abs(moveY) == 0) {
+                moveX += x;
+                moveY += y;
+                idTimer = setInterval('moveFigure();', 6)
+            } else {
+                if (Math.abs(moveX) + Math.abs(moveY) !== 0) {
+                    moveX += x;
+                    moveY += y;
+                }
+                if (Math.abs(moveX) + Math.abs(moveY) == 0) {
+                    moveX += x;
+                    moveY += y;
+                }
+            }
+        }
+
+        function Chaos() {
+            chaosState++;
+            chaosState %= 2;
+        }
+
+        function stop() {
+            moveX = 0;
+            moveY = 0;
+            clearInterval(idTimer);
+
+        }
+
+        function setlife(a) {
+            avlifespan = Math.max(50, avlifespan + a * 50);
+            $('life').value = avlifespan;
+        }
+
+        function settime(a) {
+            timespeed = Math.max(0, timespeed + a * 0.1);
+            $('time').value = (timespeed * 100).toFixed(0);
+        }
+    </script>
+    <style type="text/css">
+        canvas {
+            border: 1px solid blue;
+        }
+    </style>
+</head>
+
+<body onload="init();">
+    <canvas id="canvas" width="600" height="400" onclick="goInput(event);">
+    </canvas>
+    <hr>
+    <form class="inline">Gravity
+        <p>
+            <input type="button" class="dir" value="↖" onclick="move(-2,-2);">
+            <input type="button" class="dir" value="↑" onclick="move(0,-3);">
+            <input type="button" class="dir" value="↗" onclick="move(2,-2);">
+        </p>
+        <p>
+            <input type="button" class="dir" value="←" onclick="move(-3,0);">
+            <input type="button" class="dir" value="X" onclick="stop();">
+            <input type="button" class="dir" value="→" onclick="move(3,0);">
+        </p>
+        <p>
+            <input type="button" class="dir" value="↙" onclick="move(-2,2);">
+            <input type="button" class="dir" value="↓" onclick="move(0,3);">
+            <input type="button" class="dir" value="↘" onclick="move(2,2);">
+        </p>
+    </form>
+    <form class="inline">
+        <p>
+            <input type="button" class="spec" value="вверх ↑" onclick="SetMoveType(1);">
+            <input type="button" class="spec" value="влево ←" onclick="SetMoveType(2);">
+        </p>
+        <p>
+            <input type="button" class="spec" value="вправо →" onclick="SetMoveType(3);">
+            <input type="button" class="spec" value="вниз ↓" onclick="SetMoveType(4);">
+        </p>
+        <p>
+            <input type="button" class="spec" value="рандом" onclick="SetMoveType(5);">
+            <input type="button" class="spec" value="сброс" onclick="SetMoveType(0);">
+        </p>
+    </form>
+
+
+    <form class="inline">
+        <p>время жизни</p>
+        <p><input type="button" class="regul" value="+" onclick="setlife(1);">
+            <input type="button" class="regul" value="-" onclick="setlife(-1);"></p>
+        <p>скорость мира</p>
+        <p>
+            <input type="button" class="regul" value="+" onclick="settime(1);">
+            <input type="button" class="regul" value="-" onclick="settime(-1);">
+        </p>
+        <p>
+            <input type="button" class="spec" value="хаос" onclick="Chaos();">
+        </p>
+    </form>
+    <form class="inline" style="vertical-align: top">
+        <p>текущее среднее, ед</p>
+        <p><input type="text" name="comment" id="life" size="15" value="200" readonly></p>
+        <p>текущая, %</p>
+        <p>
+            <input type="text" name="comment" id="time" size="15" value="100" readonly>
+        </p>
+        <p>
+            <input type="button" class="off" value="вкл./выкл. спавны" onclick="dospawn++; dospawn%=2">
+        </p>
+    </form>
+</body>
+
+</html>
