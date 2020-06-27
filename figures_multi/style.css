@@ -1,0 +1,32 @@
+form {
+    font-family: monospace;
+}
+
+.dir {
+    height: 40px;
+    width: 40px;
+}
+
+.off {
+    height: 49px;
+    width: 133px;
+}
+
+.regul {
+    height: 26px;
+    width: 46px;
+}
+
+.spec {
+    height: 40px;
+    width: 100px;
+}
+
+.inline {
+    display: inline-block;
+    margin: 10px;
+}
+
+canvas {
+    border: 1px solid blue;
+}

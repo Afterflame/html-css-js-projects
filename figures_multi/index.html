@@ -1,0 +1,76 @@
+<html>
+
+<head>
+    <title>Canvas</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mootools/1.6.0/mootools-core.js"></script>
+    <script type="text/javascript" src="js/struct.js"></script>
+    <script type="text/javascript" src="js/interferences.js"></script>
+    <script type="text/javascript" src="js/action.js"></script>
+    <script type="text/javascript" src="js/interface.js"></script>
+</head>
+
+<body onload="init();">
+    <canvas id="canvas" width="600" height="400" onclick="goInput(event);">
+    </canvas>
+    <hr>
+    <form class="inline">Gravity
+        <p>
+            <input type="button" class="dir" value="↖" onclick="move(-2,-2);">
+            <input type="button" class="dir" value="↑" onclick="move(0,-3);">
+            <input type="button" class="dir" value="↗" onclick="move(2,-2);">
+        </p>
+        <p>
+            <input type="button" class="dir" value="←" onclick="move(-3,0);">
+            <input type="button" class="dir" value="X" onclick="stop();">
+            <input type="button" class="dir" value="→" onclick="move(3,0);">
+        </p>
+        <p>
+            <input type="button" class="dir" value="↙" onclick="move(-2,2);">
+            <input type="button" class="dir" value="↓" onclick="move(0,3);">
+            <input type="button" class="dir" value="↘" onclick="move(2,2);">
+        </p>
+    </form>
+    <form class="inline">
+        <p>
+            <input type="button" class="spec" value="вверх ↑" onclick="SetMoveType(1);">
+            <input type="button" class="spec" value="влево ←" onclick="SetMoveType(2);">
+        </p>
+        <p>
+            <input type="button" class="spec" value="вправо →" onclick="SetMoveType(3);">
+            <input type="button" class="spec" value="вниз ↓" onclick="SetMoveType(4);">
+        </p>
+        <p>
+            <input type="button" class="spec" value="рандом" onclick="SetMoveType(5);">
+            <input type="button" class="spec" value="сброс" onclick="SetMoveType(0);">
+        </p>
+    </form>
+
+
+    <form class="inline">
+        <p>время жизни</p>
+        <p><input type="button" class="regul" value="+" onclick="setlife(1);">
+            <input type="button" class="regul" value="-" onclick="setlife(-1);"></p>
+        <p>скорость мира</p>
+        <p>
+            <input type="button" class="regul" value="+" onclick="settime(1);">
+            <input type="button" class="regul" value="-" onclick="settime(-1);">
+        </p>
+        <p>
+            <input type="button" class="spec" value="хаос" onclick="Chaos();">
+        </p>
+    </form>
+    <form class="inline" style="vertical-align: top">
+        <p>текущее среднее, ед</p>
+        <p><input type="text" name="comment" id="life" size="15" value="200" readonly></p>
+        <p>текущая, %</p>
+        <p>
+            <input type="text" name="comment" id="time" size="15" value="100" readonly>
+        </p>
+        <p>
+            <input type="button" class="off" value="вкл./выкл. спавны" onclick="dospawn++; dospawn%=2">
+        </p>
+    </form>
+</body>
+
+</html>
