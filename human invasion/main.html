@@ -1,0 +1,807 @@
+<html>
+
+<head>
+    <title>Canvas</title>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mootools/1.6.0/mootools-core.js"></script>
+    <script type="text/javascript" src="supportJS.js"></script>
+    <script type="text/javascript">
+        var canvas, ctx, Figures, idTimer = null,
+            exposionRadius = 85,
+            nametimer = null,
+            keepintsave = 0,
+            gravity = 0.015,
+            pausing = 0,
+            resuming = 0,
+            enteringname = 0,
+            showingScore = 0,
+            gameend = 0,
+            username = '',
+            Field, Cannon, Enemies = [],
+            MouseX, MouseY, PBut, RBut, Sbut,
+            Projectiles = [],
+            Explosions = [],
+            userscores;
+
+        FieldTemp = new Class({
+            initialize: function(ctx) {
+                this.HPLost = 0;
+                this.Score = 0;
+                this.Time = 0;
+                this.col1 = '#202020';
+                this.col2 = '#aaa';
+                this.ctxV = ctx;
+            },
+            difficulty: function() {
+                return (12463 + this.Time + this.Score * 20) / 12463;
+            },
+            drawBack: function() {
+                with(this) {
+                    ctxV.save();
+                    var g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                    g.addColorStop(1, col1);
+                    g.addColorStop(0, col2);
+                    ctxV.fillStyle = g;
+                    ctxV.fillRect(0, 0, canvas.width, canvas.height);
+                    ctxV.restore();
+                }
+            },
+            drawHUD: function() {
+                ctx.font = "16px monospace";
+                ctx.fillText("DIF: " + Math.floor(this.difficulty()), 380, 565);
+                ctx.fillText("HP: " + Math.floor(((400 + this.Score - this.HPLost * 400) / 400)), 170, 565);
+                ctx.font = "30px monospace";
+                ctx.fillText(username, 550 - username.length * 12, 35);
+                ctx.fillText(this.Score, 630, 35);
+                ctx.fillStyle = "#999999";
+                ctx.strokeStyle = "#000000";
+                ctx.strokeRect(380, 570, 200, 20);
+                ctx.fillRect(380, 570, 200 * (this.difficulty() % 1), 20);
+                ctx.closePath;
+                ctx.strokeRect(170, 570, 200, 20);
+                ctx.fillRect(170, 570, 200 * ((400 + this.Score - this.HPLost * 400) / 400 % 1), 20);
+                ctx.closePath;
+                ctx.fillStyle = "#000000";
+
+            },
+            draw: function() {
+                this.drawBack();
+                Cannon.draw();
+                for (var proj of Projectiles)
+                    proj.draw();
+                for (var enem of Enemies) {
+                    enem.draw();
+                }
+                for (var i = 0; i < Explosions.length;) {
+                    Explosions[i].draw();
+                    Explosions[i].t--;
+                    if (Explosions[i].t == 0)
+                        Explosions.splice(i, 1)
+                    else i++
+                }
+                if (MouseX > RBut.pos.x + 5 && MouseY > RBut.pos.y + 5 && MouseX < RBut.pos.x + 35 && MouseY < RBut.pos.y + 35)
+                    RBut.draw(1);
+                else RBut.draw(0);
+                if (MouseX > PBut.pos.x + 5 && MouseY > PBut.pos.y + 5 && MouseX < PBut.pos.x + 35 && MouseY < PBut.pos.y + 35)
+                    PBut.draw(1);
+                else PBut.draw(0);
+                if (MouseX > SBut.pos.x + 5 && MouseY > SBut.pos.y + 5 && MouseX < SBut.pos.x + 35 && MouseY < SBut.pos.y + 35)
+                    SBut.draw(1);
+                else SBut.draw(0);
+                if (idTimer != null)
+                    this.drawHUD();
+            },
+            spawn: function() {
+                for (var i = 0; i < 4; i++)
+                    for (var j = 0; j < 5; j++) {
+                        if (i == 3 && Field.difficulty() >= 0)
+                            Enemies.push(new Enemy(new pt(canvas.width + j * 30, 35 + i * 30), 1, 5));
+                        else if (i < 2 && j < 4 && j > 0 && Field.difficulty() >= 0)
+                            Enemies.push(new Enemy(new pt(canvas.width + j * 30, 35 + i * 30), 2, 5));
+                        else
+                            Enemies.push(new Enemy(new pt(canvas.width + j * 30, 35 + i * 30), 0, 5));
+                    }
+            }
+        });
+        Button = new Class({
+            initialize: function(location, type) {
+                this.pos = location;
+                this.action = type;
+            },
+            draw: function(state) {
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.rect(this.pos.x, this.pos.y, 30, 30);
+                ctx.closePath();
+                ctx.fillStyle = '#999999';
+                if (state)
+                    ctx.fillStyle = '#777777';
+                ctx.fill();
+                ctx.fillStyle = '#333333';
+                if (this.action == 0) {
+                    ctx.beginPath();
+                    ctx.arc(this.pos.x + 15, this.pos.y + 15, 10, 0, 2 * Math.PI, false);
+                    ctx.lineWidth = 2;
+                    ctx.moveTo(this.pos.x + 1, this.pos.y + 11);
+                    ctx.lineTo(this.pos.x + 5, this.pos.y + 16);
+                    ctx.lineTo(this.pos.x + 10, this.pos.y + 12);
+                    ctx.closePath();
+                    ctx.strokeStyle = '#222222';
+                    ctx.stroke();
+                }
+                if (this.action == 1) {
+                    ctx.beginPath();
+                    ctx.rect(this.pos.x + 7, this.pos.y + 6, 6, 18);
+                    ctx.rect(this.pos.x + 17, this.pos.y + 6, 6, 18);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                if (this.action == 2) {
+                    ctx.beginPath();
+                    ctx.rect(this.pos.x + 7, this.pos.y + 6, 16, 2);
+                    ctx.rect(this.pos.x + 7, this.pos.y + 14, 16, 2);
+                    ctx.rect(this.pos.x + 7, this.pos.y + 22, 16, 2);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                ctx.strokeStyle = '#000000';
+                ctx.fillStyle = '#000000';
+            }
+        });
+        ExplosionTemp = new Class({
+            initialize: function(position, rad, lifespan) {
+                this.pos = position;
+                this.r = rad;
+                this.t = lifespan;
+                Explosions.push(this);
+            },
+            draw: function() {
+                ctx.beginPath();
+                ctx.arc(this.pos.x, this.pos.y, this.r, 0, Math.PI * 2, false);
+                ctx.closePath();
+                ctx.fillStyle = '#992222';
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+            },
+        })
+        ProgectileTemp = new Class({
+            initialize: function(typeIn, spawnpoint, direction) {
+                this.type = typeIn;
+                this.pos = spawnpoint;
+                this.dir = direction;
+                this.ctx = ctx;
+                this.dmg = 0;
+                this.v = 0;
+                if (this.type == 0) {
+                    this.dmg = 4;
+                    this.size = 4;
+                    this.v = 5;
+                }
+                if (this.type == 1) {
+                    this.dmg = 3;
+                    this.size = 3;
+                    this.v = 4;
+                }
+                if (this.type == 3 || this.type == 2) {
+                    if (this.type == 3) {
+                        this.size = 5;
+                        this.dmg = 20;
+                        this.v = 1.6;
+                    } else {
+                        this.size = 2;
+                        this.dmg = 4;
+                        this.v = 6;
+                    }
+                    this.lines = [];
+                    this.dir = Cannon.dir;
+                    this.lines.push(new line(lineUnderAngle(new pt(this.pos.x, this.pos.y), 4 * this.size, this.dir - Math.PI * 1.11), new pt(this.pos.x, this.pos.y)));
+                    this.lines.push(new line(new pt(this.pos.x, this.pos.y), lineUnderAngle(new pt(this.pos.x, this.pos.y), 7 * this.size, this.dir + Math.PI * 1.11)));
+                    this.lines.push(new line(lineUnderAngle(new pt(this.pos.x, this.pos.y), 7 * this.size, this.dir + Math.PI * 1.11), lineUnderAngle(new pt(this.pos.x, this.pos.y), 7 * this.size, this.dir - Math.PI * 1.11)));
+                }
+                Projectiles.push(this);
+            },
+            draw: function(ctx) {
+                with(this) {
+                    if (type == 0 || type == 1) {
+                        ctx.beginPath();
+                        ctx.arc(pos.x + size / 2, pos.y, size, 0, 2 * Math.PI, false);
+                        ctx.closePath();
+                        ctx.fillStyle = "#000000"
+                        if (type == 0) ctx.fillStyle = "#990110"
+                        ctx.fill();
+                    }
+                    if (type == 2 || type == 3) {
+                        ctx.beginPath();
+                        ctx.moveTo(lines[0].pt1.x, lines[0].pt1.y);
+                        for (var i = 0; i < lines.length; i++)
+                            ctx.lineTo(lines[i].pt2.x, lines[i].pt2.y)
+                        ctx.closePath();
+                        if (type == 2)
+                            ctx.fillStyle = '#111144';
+                        if (type == 3)
+                            ctx.fillStyle = '#661111';
+                        ctx.fill()
+                    }
+                }
+            },
+            move: function() {
+                with(this) {
+                    if (type == 0 || type == 1) {
+                        var planeX = Math.cos(dir),
+                            planeY = Math.sin(dir);
+                        pos.x += v * planeX;
+                        pos.y += v * planeY;
+                        planeY += gravity / v;
+                        v = Math.sqrt(Math.pow(v * planeX, 2) + Math.pow(v * planeY, 2));
+                        plusPi = 0;
+                        if (planeX < 0)
+                            plusPi = Math.PI;
+                        dir = Math.atan(planeY / planeX) + plusPi;
+                    }
+                    if (type == 2 || type == 3) {
+                        var planeX = Math.cos(dir),
+                            planeY = Math.sin(dir);
+                        pos.x += v * planeX;
+                        pos.y += v * planeY;
+                        for (var i = 0; i < lines.length; i++) {
+                            lines[i].pt1.x += v * planeX;
+                            lines[i].pt2.x += v * planeX;
+                            lines[i].pt1.y += v * planeY;
+                            lines[i].pt2.y += v * planeY;
+                        }
+                    }
+                }
+            }
+        });
+        CannonTemp = new Class({
+            initialize: function(x, y, size, ctx) {
+                this.rad = size;
+                this.pos = new pt(x, y);
+                this.dir = 0; //phi
+                this.CD = 0;
+                this.maxCD = 250;
+                this.AS = 0;
+                this.AttackType = 0;
+                this.InstantRep = 1;
+                this.projCount = 0;
+                this.Color = 'rgb(' + Math.floor(Math.random() * 24) + ',' +
+                    Math.floor(Math.random() * 24) + ',' + Math.floor(Math.random() * 24) + ')';
+            },
+            baseCD: [250, 400, 30, 800],
+            basePJC: [0, 20, 50, 3],
+            change: function(toammo) {
+                console.log('ammo changed to ' + toammo);
+                this.maxCD = this.baseCD[toammo];
+                this.CD = this.maxCD / 4;
+                this.projCount = this.basePJC[toammo];
+                this.AttackType = toammo;
+
+            },
+            draw: function() {
+                with(this) {
+                    var
+                        pt1 = lineUnderAngle(pos, rad * 2.5, dir - 0.20),
+                        pt2 = lineUnderAngle(pos, rad * 2.5, dir + 0.20),
+                        pt3 = lineUnderAngle(pos, rad * 1.5, dir - 0.30 + Math.PI),
+                        pt4 = lineUnderAngle(pos, rad * 1.5, dir + 0.30 + Math.PI);
+                    ctx.beginPath();
+                    ctx.lineTo(pt1.x, pt1.y);
+                    ctx.lineTo(pt2.x, pt2.y);
+                    ctx.lineTo(pt3.x, pt3.y);
+                    ctx.lineTo(pt4.x, pt4.y);
+                    ctx.closePath();
+                    ctx.fillStyle = Color;
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, rad, 0, 2 * Math.PI, false);
+                    ctx.closePath();
+                    ctx.fillStyle = '#000000';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(20, 20, 10, 0, Math.PI * 2 * ((maxCD - CD) / maxCD), false);
+                    ctx.lineTo(20, 20);
+                    ctx.closePath();
+                    if (CD == 0)
+                        ctx.fillStyle = '#6cd113';
+                    else
+                        ctx.fillStyle = '#990000';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(20, 60, 10, 0, Math.PI * 2 * (Math.min(1, (maxCD - CD) * 4 / maxCD)), false);
+                    ctx.lineTo(20, 60);
+                    ctx.closePath();
+                    if ((maxCD - CD) * 4 > maxCD && (maxCD - CD) * 4 < maxCD + 200)
+                        ctx.fillStyle = '#f7f700';
+                    else
+                        ctx.fillStyle = '#000000';
+                    if (InstantRep == 0 && CD !== 0)
+                        ctx.fillStyle = '#ff0000';
+                    ctx.fill();
+                    ctx.beginPath();
+                    switch (this.AttackType) {
+                        case 0:
+                            ctx.fillStyle = "#330000";
+                            break;
+                        case 1:
+                            ctx.fillStyle = "#555555";
+                            break;
+                        case 2:
+                            ctx.fillStyle = "#222299";
+                            break;
+                        case 3:
+                            ctx.fillStyle = "#aa4500";
+                            break;
+                    }
+                    ctx.font = "40px monospace";
+                    ctx.fillText(this.projCount, 10, 120);
+                    ctx.closePath();
+                    ctx.fillStyle = "#000000";
+                }
+            },
+            shoot: function() {
+                with(this) {
+                    if (CD == 0) {
+                        if (AttackType != 0 && projCount == 0) {
+                            AttackType = 0;
+                            maxCD = baseCD[0];
+                        }
+                        if (AttackType == 1) {
+                            var Projectile = new ProgectileTemp(AttackType, lineUnderAngle(pos, rad * 2.67, dir), dir);
+                            Projectile = new ProgectileTemp(AttackType, lineUnderAngle(pos, rad * 2.67, dir + 0.1), dir - 0.1);
+                            Projectile = new ProgectileTemp(AttackType, lineUnderAngle(pos, rad * 2.67, dir - 0.1), dir + 0.1);
+                        } else
+                            var Projectile = new ProgectileTemp(AttackType, lineUnderAngle(pos, rad * 2.67, dir), dir);
+                        if (AttackType != 0) projCount--;
+                        CD = maxCD;
+                        InstantRep = 1;
+                    } else
+                    if (InstantRep == 1 && (maxCD - CD) * 4 > maxCD + 5 && (maxCD - CD) * 4 < maxCD + 200) CD = 0;
+                    else InstantRep = 0;
+                }
+            }
+        });
+        Enemy = new Class({
+            initialize: function(p, Etype, sizeIn) {
+                this.type = Etype;
+                this.pos = new pt(p.x, p.y);
+                this.v = -2.5 * Math.sqrt(Field.difficulty() / 4);
+                if (this.type == 0)
+                    this.hp = 2;
+                if (this.type == 1 || this.type == 3 || this.type == 4)
+                    this.hp = 1;
+                if (this.type == 2)
+                    this.hp = 5;
+                if (Field.difficulty() >= 6)
+                    this.hp += 2;
+                this.size = sizeIn;
+                if (this.type == 0 || this.type == 1 || this.type == 2) {
+                    with(this) {
+                        this.lines = [];
+                        this.lines.push(new line(new pt(pos.x, pos.y), new pt(pos.x, pos.y - 1 * size)));
+                        this.lines.push(new line(new pt(pos.x, pos.y - 1 * size), new pt(pos.x + 1 * size, pos.y - 1 * size)));
+                        this.lines.push(new line(new pt(pos.x + 1 * size, pos.y - 1 * size), new pt(pos.x + 1 * size, pos.y - 2 * size)));
+                        this.lines.push(new line(new pt(pos.x + 1 * size, pos.y - 2 * size), new pt(pos.x + 3 * size, pos.y - 2 * size)));
+                        this.lines.push(new line(new pt(pos.x + 3 * size, pos.y - 2 * size), new pt(pos.x + 3 * size, pos.y - 1 * size)));
+                        this.lines.push(new line(new pt(pos.x + 3 * size, pos.y - 1 * size), new pt(pos.x + 4 * size, pos.y - 1 * size)));
+                        this.lines.push(new line(new pt(pos.x + 4 * size, pos.y - 1 * size), new pt(pos.x + 4 * size, pos.y)));
+                        this.lines.push(new line(new pt(pos.x + 4 * size, pos.y), new pt(pos.x + 3 * size, pos.y)));
+                        this.lines.push(new line(new pt(pos.x + 3 * size, pos.y), new pt(pos.x + 3 * size, pos.y - 0.5 * size)));
+                        if (type == 1) {
+                            this.lines.push(new line(new pt(pos.x + 3 * size, pos.y - 0.5 * size), new pt(pos.x + 2.5 * size, pos.y - 0.5 * size)));
+                            this.lines.push(new line(new pt(pos.x + 2.5 * size, pos.y - 0.5 * size), new pt(pos.x + 2.5 * size, pos.y)));
+                            this.lines.push(new line(new pt(pos.x + 2.5 * size, pos.y), new pt(pos.x + 1.5 * size, pos.y)));
+                            this.lines.push(new line(new pt(pos.x + 1.5 * size, pos.y), new pt(pos.x + 1.5 * size, pos.y - 0.5 * size)));
+                            this.lines.push(new line(new pt(pos.x + 1.5 * size, pos.y - 0.5 * size), new pt(pos.x + 1 * size, pos.y - 0.5 * size)));
+                        } else
+                            this.lines.push(new line(new pt(pos.x + 3 * size, pos.y - 0.5 * size), new pt(pos.x + 1 * size, pos.y - 0.5 * size)));
+                        this.lines.push(new line(new pt(pos.x + 1 * size, pos.y - 0.5 * size), new pt(pos.x + 1 * size, pos.y)));
+                        this.lines.push(new line(new pt(pos.x + 1 * size, pos.y), new pt(pos.x, pos.y)));
+                    }
+                }
+                if (this.type == 3) {
+                    this.v = 1.81 * Math.sqrt(Field.difficulty() / 4);
+                    this.lines = [];
+                    var plusPi = 0;
+                    if (Cannon.pos.x - this.pos.x < 0)
+                        plusPi = Math.PI;
+                    this.dir = Math.atan((Cannon.pos.y - new pt(this.pos.x, this.pos.y).y) / (Cannon.pos.x - new pt(this.pos.x, this.pos.y).x)) + plusPi;
+                    this.lines.push(new line(lineUnderAngle(new pt(this.pos.x, this.pos.y), 4 * this.size, this.dir - Math.PI * 1.11), new pt(this.pos.x, this.pos.y)));
+                    this.lines.push(new line(new pt(this.pos.x, this.pos.y), lineUnderAngle(new pt(this.pos.x, this.pos.y), 7 * this.size, this.dir + Math.PI * 1.11)));
+                    this.lines.push(new line(lineUnderAngle(new pt(this.pos.x, this.pos.y), 7 * this.size, this.dir + Math.PI * 1.11), lineUnderAngle(new pt(this.pos.x, this.pos.y), 7 * this.size, this.dir - Math.PI * 1.11)));
+                }
+                if (this.type == 4) {
+                    this.ammotype = Math.floor(Math.random() * 5) % 3 + 1;
+                    this.v = 1
+                    this.lines = [];
+                    this.lines.push(new line(new pt(this.pos.x, this.pos.y), new pt(this.pos.x + this.size, this.pos.y)));
+                    this.lines.push(new line(new pt(this.pos.x, this.pos.y), new pt(this.pos.x, this.pos.y + this.size)));
+                    this.lines.push(new line(new pt(this.pos.x + this.size, this.pos.y), new pt(this.pos.x + this.size, this.pos.y + this.size)));
+                    this.lines.push(new line(new pt(this.pos.x, this.pos.y + this.size), new pt(this.pos.x + this.size, this.pos.y + this.size)));
+                }
+            },
+            draw: function() {
+                with(this) {
+                    if (this.type == 4) {
+                        if (ammotype == 1)
+                            ctx.fillStyle = '#777777';
+                        if (ammotype == 2)
+                            ctx.fillStyle = '#222288';
+                        if (ammotype == 3)
+                            ctx.fillStyle = '#aa1111';
+                        ctx.fillRect(this.pos.x, this.pos.y, size, size)
+                        ctx.closePath();
+                    }
+                    ctx.beginPath();
+                    ctx.moveTo(lines[0].pt1.x, lines[0].pt1.y);
+                    for (var i = 0; i < lines.length; i++)
+                        ctx.lineTo(lines[i].pt2.x, lines[i].pt2.y)
+                    ctx.closePath();
+                    ctx.fillStyle = '#000000';
+                    if (type == 1)
+                        ctx.fillStyle = '#111188';
+                    if (type == 2)
+                        ctx.fillStyle = '#881111';
+                    ctx.fill()
+                }
+            },
+            move: function() {
+                with(this) {
+                    if (type == 0 || type == 1 || type == 2) {
+                        pos.x += v;
+                        for (var line of lines) {
+                            line.pt1.x += v;
+                            line.pt2.x += v;
+                        }
+                        if (pos.x <= Math.abs(v) + 6 && v < 0) {
+                            v = Math.abs(v);
+                            pos.y += size * 7.5;
+                            for (var line of lines) {
+                                line.pt1.y += size * 7.5;
+                                line.pt2.y += size * 7.5;
+                            }
+                        }
+
+                        if (pos.x + size > canvas.width - v - 6 && v > 0) {
+                            v = -1 * Math.abs(v);
+                            pos.y += size * 7.5;
+                            for (var line of lines) {
+                                line.pt1.y += size * 7.5;
+                                line.pt2.y += size * 7.5;
+                            }
+                        }
+                        if ((type == 1) && Math.random() < Math.sqrt(Math.sqrt(Math.sqrt(Field.difficulty()))) / 700) {
+                            this.paw(4);
+                        }
+                    }
+                    if (type == 3) {
+                        with(this)
+                        var planeX = Math.cos(dir),
+                            planeY = Math.sin(dir);
+                        pos.x += v * planeX;
+                        pos.y += v * planeY;
+                        for (line of lines) {
+                            line.pt1.x += v * planeX;
+                            line.pt2.x += v * planeX;
+                            line.pt1.y += v * planeY;
+                            line.pt2.y += v * planeY;
+                        }
+                    }
+                    if (type == 4) {
+                        pos.y += v;
+                        for (line of lines) {
+                            line.pt1.y += v;
+                            line.pt2.y += v;
+                        }
+                    }
+                }
+            },
+            paw: function(sizeIn) {
+                Enemies.push(new Enemy(this.pos, 3, sizeIn));
+            }
+        });
+
+        function addScore(enem) {
+            console.log(Enemies[enem].type + ' was slain');
+            if (Enemies[enem].type == 0)
+                Field.Score += 10;
+            if (Enemies[enem].type == 1)
+                Field.Score += 20;
+            if (Enemies[enem].type == 2)
+                Field.Score += 25;
+            if (Enemies[enem].type == 3)
+                Field.Score += 15;
+            if (Enemies[enem].type == 4) {
+                Field.Score += 50;
+                Cannon.change(Enemies[enem].ammotype);
+            }
+        }
+
+        function execute(proj, enem) {
+            if (enem == -1) {
+                Projectiles.splice(proj, 1);
+            } else {
+                console.log(Enemies[enem]);
+                if (Projectiles[proj].type == 0 || Projectiles[proj].type == 1 || Projectiles[proj].type == 2)
+                    Enemies[enem].hp -= Projectiles[proj].dmg;
+                console.log(Enemies[enem]);
+                if (Enemies[enem].hp <= 0) {
+                    addScore(enem);
+                    Enemies.splice(enem, 1);
+                }
+                if (Projectiles[proj].type == 1 || Projectiles[proj].type == 2) {
+                    Projectiles.splice(proj, 1);
+                    return;
+                }
+                if (Projectiles[proj].type == 0) {
+                    Projectiles[proj].v *= 0.6;
+                    Projectiles[proj].dmg *= 0.8;
+                    Projectiles[proj].type++;
+                }
+                if (Projectiles[proj].type == 3) {
+                    new ExplosionTemp(Projectiles[proj].pos, exposionRadius, 20)
+                    for (var enem = 0; enem < Enemies.length;) {
+                        if (Math.sqrt(Math.pow(Enemies[enem].pos.x - Projectiles[proj].pos.x, 2) + Math.pow(Enemies[enem].pos.y - Projectiles[proj].pos.y, 2)) < exposionRadius) {
+                            addScore(enem);
+                            Enemies.splice(enem, 1);
+                        } else enem++;
+                    }
+                }
+                Projectiles.splice(proj, 1);
+            }
+        }
+
+        function tokiWa() {
+            if (idTimer == null) return;
+            if (Field.Time % 4347 / Math.sqrt(Math.sqrt(Field.difficulty())) == 0) {
+                Field.spawn();
+                console.log("dif =", Field.difficulty());
+            }
+            Field.draw();
+            if (Field.Time % 6 == 0) {
+                for (var enem of Enemies) {
+                    enem.move()
+                }
+            }
+            if (Math.random() < Math.sqrt(Math.sqrt(Math.sqrt(Math.sqrt(Field.difficulty())))) / 2000)
+                Enemies.push(new Enemy(new pt(canvas.width / 4 + canvas.width / 2 * Math.random(), 6), 4, 22))
+            for (var proj of Projectiles) {
+                proj.move()
+            }
+
+            for (var j = 0; j < Enemies.length; j++)
+                if (Enemies[j].pos.x < 110 && Enemies[j].pos.y > 525) {
+                    if (Enemies[j].type != 4) {
+                        if (Field.Score - Field.HPLost * 400 < 0) {
+                            GameOver();
+                            return;
+                        } else {
+                            Enemies.splice(j, 1);
+                            Field.HPLost++;
+                        }
+                    } else if (Enemies[j].pos.y > 600) {
+                        Enemies.splice[j];
+                        j--; //danger?  
+                    }
+                }
+            for (var i = 0; i < Projectiles.length; i++) {
+                if ((Projectiles[i].pos.x > canvas.width) || (Projectiles[i].pos.x < 0) || (Projectiles[i].pos.y > canvas.height)) {
+                    execute(i, -1);
+                    continue;
+                }
+                for (var j = 0; j < Enemies.length; j++)
+                    if (objsIntersec(Projectiles[i], Enemies[j])) {
+                        execute(i, j);
+                        break;
+                    }
+            }
+            Field.Time++;
+            Cannon.CD = Math.max(Cannon.CD - 1, 0);
+        }
+
+        function goInput(event) {
+            console.log("click in " + event.clientX + ' ' + event.clientY);
+            if (enteringname) return;
+            if (MouseX > 645 && MouseY > 570 && MouseX < 675 && MouseY < 600 && !resuming) {
+                Reset();
+                Resume();
+            } else
+            if (MouseX > 695 && MouseY > 570 && MouseX < 725 && MouseY < 600 && !resuming) {
+                if (!gameend) {
+                    if (pausing) Resume();
+                    else
+                        Pause();
+                }
+            } else
+            if (MouseX > 745 && MouseY > 570 && MouseX < 795 && MouseY < 600 && !resuming) {
+                if (showingScore)
+                    if (gameend) {
+                        Field.draw();
+                        showingScore = 0;
+                    } else Resume();
+                else
+                    showScore();
+            } else if (idTimer !== null && !resuming && !gameend) {
+                Cannon.shoot();
+            } else if (gameend) {
+                Field.draw();
+            }
+        }
+
+        function GameOver() {
+            userscores.push([Field.Score, username]);
+            console.log("GAMEOVER");
+            console.log(userscores);
+            Reset();
+            ctx.font = "120px monospace";
+            ctx.fillText("YOU DIED", 110, 250);
+            gameend = 1;
+        }
+
+        function Reset() {
+            clearInterval(idTimer);
+            idTimer = null;
+            Field.HPLost = 0;
+            Projectiles.splice(0, Projectiles.length)
+            Enemies.splice(0, Enemies.length)
+            Cannon.dir = 0;
+            Field.Time = 0;
+            gameend = 0;
+            Field.Score = 0;
+            Cannon.CD = 0;
+            Cannon.AttackType = 0;
+            Field.draw();
+        }
+
+        function Resume() {
+            Cannon.dir = keepintsave;
+            enteringname = 0;
+            resuming = 1;
+            showingScore = 0;
+            pausing = 0;
+            gameend = 0;
+            Field.draw();
+            ctx.font = "150px monospace";
+            ctx.fillStyle = "#333333"
+            ctx.fillText("3", canvas.width / 2 - 50, canvas.height / 2 + 50);
+            setTimeout(function two() {
+                Cannon.dir = keepintsave;
+                Field.draw();
+                ctx.fillStyle = "#333333"
+                ctx.font = "150px monospace";
+                ctx.fillText("2", canvas.width / 2 - 50, canvas.height / 2 + 50);
+                setTimeout(function one() {
+                    Cannon.dir = keepintsave;
+                    Field.draw();
+                    ctx.fillStyle = "#333333"
+                    ctx.font = "150px monospace";
+                    ctx.fillText("1", canvas.width / 2 - 50, canvas.height / 2 + 50);
+                    setTimeout(function go() {
+                        resuming = 0;
+                        idTimer = setInterval('tokiWa();', 5);
+                    }, 750);
+                }, 750)
+            }, 750);
+
+
+        }
+
+        function showScore() {
+            enteringname = 0;
+            showingScore = 1;
+            pausing = 0;
+            clearInterval(idTimer);
+            idTimer = null;
+            keepintsave = Cannon.dir;
+            Field.draw();
+            ctx.font = "50px monospace";
+            console.log(userscores);
+            var c = 0,
+                f = 0;
+            userscores.sort(function([a1, a2], [b1, b2]) {
+                return b1 - a1;
+            });
+            ctx.fillText(userscores[0][0], 490, 170);
+            for (var user in userscores) {
+                ctx.fillText(userscores[user][1], 130, 170 + user * 55);
+                ctx.fillText(userscores[user][0], 490, 170 + user * 55);
+                if (user == 3) break;
+            }
+            ctx.fillStyle = '#000000';
+        }
+
+        function Pause() {
+            pausing = 1;
+            clearInterval(idTimer);
+            idTimer = null;
+            keepintsave = Cannon.dir;
+            Field.draw();
+            ctx.fillStyle = '#bbbbbb';
+            ctx.rect(canvas.width / 2 + 5 - 60, canvas.height / 2 + 5 - 100, 50, 200);
+            ctx.fill();
+            ctx.closePath();
+            ctx.rect(canvas.width / 2 + 5 + 10, canvas.height / 2 + 5 - 100, 50, 200);
+            ctx.fill();
+            ctx.closePath();
+            ctx.fillStyle = '#000000';
+        }
+
+
+
+        function letsplay(Umap) {
+            Umap.push([20, 'JOHN']);
+            Umap.push([99999999, 'KYAN LIN THI']);
+            Umap.push([20005, 'ANNA']);
+            Umap.push([7320, 'KERRZH']);
+            Umap.push([2, 'REY']);
+        }
+
+        function init() {;
+            canvas = document.getElementById('canvas');
+            if (canvas.getContext) {
+                userscores = [];
+                letsplay(userscores);
+                ctx = canvas.getContext('2d');
+                Field = new FieldTemp(ctx);
+                Cannon = new CannonTemp(80, canvas.height - 60, 20, ctx);
+                RBut = new Button(new pt(640, 560), 0);
+                PBut = new Button(new pt(690, 560), 1);
+                SBut = new Button(new pt(740, 560), 2);
+                Field.draw();
+                enteringname = 1;
+                ctx.font = "40px monospace";
+                ctx.fillText("ENTER YOUR NAME", 230, 200);
+                ctx.fillText("AND PRESS ENTER TO START", 130, 270);
+                document.addEventListener('keydown', function(event) {
+                    if (enteringname) {
+                        if (event.keyCode == 8) {
+                            if (username.length > 0) {
+                                username = username.slice(0, username.length - 1);
+                                Field.draw();
+                                ctx.font = "40px monospace";
+                                ctx.fillText("ENTER YOUR NAME", 230, 200);
+                                ctx.fillText("AND PRESS ENTER TO START", 130, 270);
+                                ctx.font = "80px monospace";
+                                ctx.fillText(username, 400 - username.length * 23, 400);
+                            }
+                        }
+                        if (event.keyCode <= 90 && event.keyCode >= 65 && username.length <= 10) {
+                            username += String.fromCharCode(event.keyCode);
+                            Field.draw();
+                            ctx.font = "40px monospace";
+                            ctx.fillText("ENTER YOUR NAME", 230, 200);
+                            ctx.fillText("AND PRESS ENTER TO START", 130, 270);
+                            ctx.font = "80px monospace";
+                            ctx.fillText(username, 400 - username.length * 23, 400);
+
+                        }
+                        if (event.keyCode == 13) {
+                            if (username == '') username = "blank";
+                            enteringname = 0;
+                            Resume();
+                        }
+                    }
+                });
+                canvas.addEventListener('mousemove', e => {
+                    MouseX = e.clientX;
+                    MouseY = e.clientY;
+                    plusPi = 0;
+                    if (MouseX - Cannon.pos.x < 0)
+                        plusPi = Math.PI;
+                    Cannon.dir = Math.atan((MouseY - Cannon.pos.y) / (MouseX - Cannon.pos.x)) + plusPi;
+                });
+            }
+        }
+    </script>
+    <style type="text/css">
+        canvas {
+            border: 1px solid blue;
+        }
+    </style>
+</head>
+
+<body onload="init();">
+    <canvas id="canvas" width="800" height="600" onclick="goInput(event);">
+    </canvas>
+
+</body>
+
+</html>
